@@ -5,6 +5,7 @@ import androidx.cardview.widget.CardView;
 import androidx.vectordrawable.graphics.drawable.AnimationUtilsCompat;
 
 import android.animation.Animator;
+import android.app.Activity;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -22,6 +23,7 @@ import android.widget.Toast;
 import com.example.trivia.data.AnswerListAsyncResponse;
 import com.example.trivia.data.QuestionBank;
 import com.example.trivia.model.Question;
+import com.example.trivia.util.Prefs;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -34,6 +36,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private CardView cv;
     private int curr = 0;
     private int s=0,hs=0;
+    private Prefs prefs;
     ArrayList<Question> questionList;
     private static  final  String MESS="msg";
 
@@ -51,38 +54,27 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         cv = findViewById(R.id.cv);
         score=findViewById(R.id.scores);
         hsc=findViewById(R.id.highscores);
+        prefs = new Prefs(MainActivity.this);
 
         tru.setOnClickListener(this);
         fal.setOnClickListener(this);
         pre.setOnClickListener(this);
         next.setOnClickListener(this);
 
+        hs=prefs.getHighScore();
+        hsc.setText("High: "+hs);
+        curr=prefs.getCurr();
+
         questionList = new QuestionBank().getQuestionArrayList(new AnswerListAsyncResponse() {
             @Override
             public void processFinished(ArrayList<Question> questionArrayList) {
 
                 Log.d("Mains", "kjiuih" + questionArrayList);
-
-                SharedPreferences getShareData = getPreferences(MODE_PRIVATE);
-                curr= getShareData.getInt("curr",0);
-                s=getShareData.getInt("score",0);
                 tv.setText(questionArrayList.get(curr).getAnswer());
                 no.setText(curr+ 1 + " / " + questionArrayList.size());
                 score.setText(MessageFormat.format("Score: {0}", s));
-//                tv.setText(questionList.get(5).getAnswer());
-//                no.setText(curr+ 1 + " / " + questionArrayList.size());
-//                score.setText("Score: "+s );
             }
         });
-
-//        SharedPreferences getShareData = getSharedPreferences(MESS,MODE_PRIVATE);
-//        String abc=questionList.get(0).getAnswer();
-//        String q=getShareData.getString("ques",abc);
-//        curr= getShareData.getInt("curr",0);
-//        s=getShareData.getInt("score",0);
-//        tv.setText(questionList.get(curr).getAnswer());
-//        no.setText(curr+ 1 + " / " + questionList.size());
-//        score.setText("Score: "+s);
 
     }
 
@@ -90,6 +82,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.prev:
+                if(curr==0)
+                    curr=1;
                 curr = (curr - 1) % questionList.size();
                 update();
                 break;
@@ -113,16 +107,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void update() {
         tv.setText(questionList.get(curr).getAnswer());
         no.setText(curr + 1 + " / " + questionList.size());
-       /* SharedPreferences sharedPreferences = getSharedPreferences(MESS,MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putInt("curr",curr);
-        editor.putInt("score",s);
-        editor.commit();
-        int p= sharedPreferences.getInt("score",0);
-        int q= sharedPreferences.getInt("curr",0);
-        Log.d("score", String.valueOf(p));
-        Log.d("curr" , String.valueOf(q));*/
-
     }
 
     private void check(boolean user) {
@@ -132,8 +116,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             toastid = R.string.correct;
             s=s+10;
             score.setText("Score: "+s);
-            if(hs<s)
+            if(hs<s){
                 hs=s;
+            }
             //hsc.setText("HS: "+hs);
             fadev();
         } else {
@@ -164,6 +149,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void onAnimationEnd(Animation animation) {
 
                 cv.setBackgroundResource(R.color.orange);
+                curr = (curr + 1) % questionList.size();
+                update();
             }
 
             @Override
@@ -188,6 +175,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void onAnimationEnd(Animation animation) {
 
                 cv.setBackgroundColor(getResources().getColor(R.color.orange));
+                curr = (curr + 1) % questionList.size();
+                update();
             }
 
             @Override
@@ -196,5 +185,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         });
         return;
+    }
+    @Override
+    public  void onPause()
+    {
+        prefs.saveCurr(curr);
+        prefs.saveHighScore(hs);
+        super.onPause();
     }
 }
